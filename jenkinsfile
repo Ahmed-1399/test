@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        // GitHub Token (Secret Text in Jenkins)
+        GIT_TOKEN       = credentials('git-token')
+
+        // Docker Hub Token (Secret Text in Jenkins)
+        DOCKER_TOKEN    = credentials('docker-token')
+
+        // Kubernetes Config File (Secret File in Jenkins)
+        K8S_CONFIG      = credentials('k8s-config')
+
+        // Docker Settings
+        DOCKER_USER = "ahmed1399"
+        DOCKER_IMAGE = "ahmed1399/angularimg"
+        DOCKER_IMAGE_TAG = "${DOCKER_IMAGE}:${BUILD_ID}"
+        DOCKER_FILE_PATH = "App1/Dockerfile"
+        DOCKER_BUILD_CONTEXT = "App1"
+
+        // Kubernetes Settings
+        DEPLOYMENT_FILE = "k8s/Deployment.yml"
+    }
+
+    stages {
+        stage("Clean Workspace") {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage("Checkout Code") {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'git-token',
+                    url: 'https://github.com/Ahmed-1399/NTI-Ivolve.git'
+            }
+        }
+
+        stage("Login to Docker Hub") {
+            steps {
+                sh "echo ${DOCKER_TOKEN} | docker login -u ${DOCKER_USER} --password-stdin"
+            }
+        }
+
+        stage("Build & Push Docker Image") {
+            steps {
+                sh """
+                    docker build -f ${DOCKER_FILE_PATH} -t ${DOCKER_IMAGE_TAG} ${DOCKER_BUILD_CONTEXT}
+                    docker push ${DOCKER_IMAGE_TAG}
+                """
+            }
+        }
+
+        stage("Run Test Container") {
+            steps {
+                sh """
+                    docker rm -f test || true
+                    docker run -d --name test -p 6000:80 ${DOCKER_IMAGE_TAG}
+                    sleep 1m
+                """
+            }
+        }
+
+        stage("Delete Image Locally") {
+            steps {
+                sh "docker rmi -f ${DOCKER_IMAGE_TAG} || true"
+            }
+        }
+
+        stage("Deploy to Kubernetes") {
+            steps {
+                sh """
+                    export KUBECONFIG=${K8S_CONFIG}
+                    sed -i 's|${DOCKER_IMAGE}:.*|${DOCKER_IMAGE_TAG}|g' ${DEPLOYMENT_FILE}
+                    kubectl apply -f ${DEPLOYMENT_FILE}
+                """
+            }
+        }
+
+        stage("Verify Deployment") {
+            steps {
+                sh """
+                    export KUBECONFIG=${K8S_CONFIG}
+                    sleep 1m
+                    kubectl get pods -o wide
+                    kubectl get deployment
+                    kubectl get service
+                """
+            }
+        }
+
+        stage("Port Forward Service") {
+            steps {
+                // nohup run "port-forward" in background
+                sh """
+                    export KUBECONFIG=${K8S_CONFIG}
+                    nohup kubectl port-forward svc/my-service 7000:80 &
+                """
+            }
+        }
+    }
+}

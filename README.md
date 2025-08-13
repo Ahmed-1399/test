@@ -42,4 +42,25 @@ kubectl delete -f Deployment.yml -f Service.yml    # Clean all
 ![📄 K8s Manifest](./assets/k8s-manifest.png)
 ![📊 K8s Output](./assets/Output-k8s.png)
 
-## 🔧 Prepare Pipeline
+## Prepare Credentials
+```bash
+1️⃣ Create token for GitHub
+    Settings ---> Developer Settings ---> Personal access tokens
+    ---> tokens (classic) ---> Generate new token (classic)
+Create Secre text credentials to add "token"
+
+2️⃣ Create token for Docker Hub
+    Settings ---> Personal access tokens ---> Generate new token
+
+3️⃣ Add "./kube/config" file as "secret text" to access K8s cluster
+```
+![📊 K8s Credentials](./assets/Credentials.png)
+
+
+## Install plugins
+```bash
+Docker pipeline
+kubernetes CLI
+```
+![📊 Jenkins Plugins](./assets/Plugins.png)
+
