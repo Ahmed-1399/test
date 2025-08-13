@@ -33,7 +33,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: 'git-token',
-                    url: 'https://github.com/Ahmed-1399/NTI-Ivolve.git'
+                    url: 'https://github.com/Ahmed-1399/test.git'
             }
         }
 
